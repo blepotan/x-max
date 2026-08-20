@@ -1,0 +1,5 @@
+# Local product documentation
+docs/PRD.md
+
+# Chrome Web Store build output
+dist/

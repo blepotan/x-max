@@ -115,6 +115,14 @@ Check the JavaScript syntax:
 bun run check
 ```
 
+Build the Chrome Web Store package:
+
+```sh
+bun run build
+```
+
+The command creates `dist/x-max-v<version>.zip`. Upload this ZIP file to the Chrome Web Store Developer Dashboard.
+
 ## Release information
 
 See [CHANGELOG.md](CHANGELOG.md) for the changes in each release.

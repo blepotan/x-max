@@ -5,6 +5,7 @@
   "description": "Dependency-free Manifest V3 X scheduling shortcut extension",
   "packageManager": "bun@1.3.14",
   "scripts": {
+    "build": "bun scripts/build.js",
     "test": "bun test tests/*.test.cjs",
     "check": "bun scripts/check.js"
   }
