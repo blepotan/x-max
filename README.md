@@ -90,6 +90,8 @@ Use `local` to use the browser time zone for both values.
 
 ## Privacy
 
+Read the full [Privacy Policy](PRIVACY.md).
+
 X-max operates only on the rendered X interface. It does not use private X API endpoints.
 
 X-max does not read these items:
