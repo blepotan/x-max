@@ -1,18 +1,20 @@
-# X-max Schedule Time
-
-<p>
-  <a href="https://github.com/blepotan/x-max/stargazers"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/stars/blepotan/x-max.svg?variant=branded&amp;mode=dark"><img alt="GitHub stars" src="https://shieldcn.dev/github/stars/blepotan/x-max.svg?variant=branded&amp;mode=light"></picture></a>
-  <a href="https://github.com/blepotan/x-max/releases/latest"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/release/blepotan/x-max.svg?mode=dark"><img alt="latest release" src="https://shieldcn.dev/github/release/blepotan/x-max.svg?mode=light"></picture></a>
-  <a href="https://github.com/blepotan/x-max/commits/main"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/last-commit/blepotan/x-max/main.svg?variant=secondary&amp;mode=dark"><img alt="last commit" src="https://shieldcn.dev/github/last-commit/blepotan/x-max/main.svg?variant=secondary&amp;mode=light"></picture></a>
-  <a href="LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/license/blepotan/x-max.svg?mode=dark"><img alt="license" src="https://shieldcn.dev/github/license/blepotan/x-max.svg?mode=light"></picture></a>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/manifest-MV3-violet.svg?variant=outline&amp;mode=dark"><img alt="manifest MV3" src="https://shieldcn.dev/badge/manifest-MV3-violet.svg?variant=outline&amp;mode=light"></picture>
-  <a href="https://bun.sh"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/runtime-Bun_1.3.14-orange.svg?variant=outline&amp;mode=dark"><img alt="runtime Bun 1.3.14" src="https://shieldcn.dev/badge/runtime-Bun_1.3.14-orange.svg?variant=outline&amp;mode=light"></picture></a>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/tests-43_passing-green.svg?variant=outline&amp;mode=dark"><img alt="tests 43 passing" src="https://shieldcn.dev/badge/tests-43_passing-green.svg?variant=outline&amp;mode=light"></picture>
+<p align="center">
+  <img src="docs/assets/x-max-cover.png" alt="X-max Schedule for X" width="1280">
 </p>
 
-X-max sets the schedule time for an X post. Press one keyboard shortcut to apply the configured rule. X-max uses the native X schedule controls.
+<h1 align="center">X-max Schedule Time</h1>
 
-X-max does not publish the post. Review the post and publish it when you are ready.
+<p align="center">
+  Set the schedule time for an X post with one keyboard shortcut.<br>
+  X-max uses X's native schedule controls and never publishes the post automatically.
+</p>
+
+<p align="center">
+  <a href="https://github.com/blepotan/x-max/stargazers"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/stars/blepotan/x-max.svg?variant=branded&amp;mode=dark"><img alt="GitHub stars" src="https://shieldcn.dev/github/stars/blepotan/x-max.svg?variant=branded&amp;mode=light"></picture></a>
+  <a href="LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/license/blepotan/x-max.svg?mode=dark"><img alt="license" src="https://shieldcn.dev/github/license/blepotan/x-max.svg?mode=light"></picture></a>
+  <a href="https://github.com/blepotan/x-max/graphs/contributors"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/contributors/blepotan/x-max.svg?mode=dark"><img alt="contributors" src="https://shieldcn.dev/github/contributors/blepotan/x-max.svg?mode=light"></picture></a>
+  <a href="https://github.com/blepotan/x-max/commits/main"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/last-commit/blepotan/x-max/main.svg?variant=secondary&amp;mode=dark"><img alt="last commit" src="https://shieldcn.dev/github/last-commit/blepotan/x-max/main.svg?variant=secondary&amp;mode=light"></picture></a>
+</p>
 
 ## Demo
 
