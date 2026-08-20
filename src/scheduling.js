@@ -242,13 +242,18 @@
       return { ok: false, code: (result && result.code) || 'TARGET_NOT_IN_FUTURE' };
     }
     const targetDate = new Date(result.timestamp);
-    const wall = numericParts(targetDate, zone);
+    // X's native scheduler has no time-zone control. Calculate the intended
+    // instant using the configured rule zone, then write its equivalent wall
+    // time in the browser zone that X displays.
+    const inputTimeZone = resolvedZone('local');
+    const wall = numericParts(targetDate, inputTimeZone);
     const twelve = to12Hour(wall.hour);
     return {
       ok: true,
       timestamp: result.timestamp,
       date: targetDate,
-      timeZone: zone,
+      timeZone: inputTimeZone,
+      configuredTimeZone: zone,
       fields: wall,
       hour12: twelve.hour,
       period: twelve.period,
@@ -265,9 +270,15 @@
 
   function formatTarget(target) {
     if (!target || !target.ok) return '';
-    const date = target.fields;
+    return formatTimestamp(target.timestamp, target.timeZone);
+  }
+
+  function formatTimestamp(timestamp, zone) {
+    if (!Number.isFinite(Number(timestamp))) return '';
+    const date = numericParts(new Date(Number(timestamp)), resolvedZone(zone));
+    const twelve = to12Hour(date.hour);
     const minute = String(date.minute).padStart(2, '0');
-    return `${monthName(date.month)} ${date.day}, ${date.year} at ${target.hour12}:${minute} ${target.period.toUpperCase()}`;
+    return `${monthName(date.month)} ${date.day}, ${date.year} at ${twelve.hour}:${minute} ${twelve.period.toUpperCase()}`;
   }
 
   function parseEnglishScheduleSummary(text, zone) {
@@ -293,6 +304,7 @@
   api.zonedFieldsToInstant = zonedFieldsToInstant;
   api.computeTarget = computeTarget;
   api.formatTarget = formatTarget;
+  api.formatTimestamp = formatTimestamp;
   api.parseEnglishScheduleSummary = parseEnglishScheduleSummary;
   api.to12Hour = to12Hour;
   root.XMax = api;

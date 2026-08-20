@@ -95,6 +95,28 @@ test('last scheduled cursor persists timestamp only to local storage', async () 
   assert.deepEqual(JSON.parse(JSON.stringify(payload)), { xmaxLastScheduledAt: 1234567890 });
 });
 
+test('reset sequence clears both cursors and suppresses cursor reads', async () => {
+  const removed = [];
+  let reset = false;
+  const storage = {
+    local: {
+      get: async (keys) => keys.includes('xmaxSequenceReset')
+        ? { xmaxSequenceReset: reset }
+        : { xmaxLastScheduledAt: 2000 },
+      set: async (value) => { if (value.xmaxSequenceReset === true) reset = true; },
+      remove: async (key) => removed.push(`local:${key}`)
+    },
+    sync: {
+      get: async () => ({ xmaxLastScheduledAt: 3000 }),
+      remove: async (key) => removed.push(`sync:${key}`)
+    }
+  };
+  const result = await api.resetSequenceCursor(storage);
+  assert.equal(result.ok, true);
+  assert.deepEqual(removed.sort(), ['local:xmaxLastScheduledAt', 'sync:xmaxLastScheduledAt']);
+  assert.equal(await api.loadLastScheduledAt(storage), null);
+});
+
 test('English visible schedule summaries can be converted in the configured zone', () => {
   const result = api.parseEnglishScheduleSummary('Will send on Thu, Aug 20, 2026 at 2:30 PM', 'Asia/Jakarta');
   assert.equal(result, Date.parse('2026-08-20T07:30:00.000Z'));
@@ -107,11 +129,28 @@ test('target calculation handles month and year rollover', () => {
 });
 
 test('configured IANA zones produce the expected local fields', () => {
+  const originalBrowserTimeZone = api.browserTimeZone;
+  api.browserTimeZone = () => 'Asia/Jakarta';
   const now = Date.parse('2026-08-20T12:07:25.000Z');
   const result = api.computeTarget(now, { ...api.DEFAULT_SETTINGS, timezone: 'Asia/Jakarta', delayMinutes: 60 });
+  api.browserTimeZone = originalBrowserTimeZone;
   assert.equal(result.ok, true);
   assert.equal(JSON.stringify(result.fields), JSON.stringify({ year: 2026, month: 8, day: 20, hour: 20, minute: 8, second: 0 }));
   assert.equal(result.timeZone, 'Asia/Jakarta');
+});
+
+test('configured rule zone converts the final instant into the browser zone used by X', () => {
+  const originalBrowserTimeZone = api.browserTimeZone;
+  api.browserTimeZone = () => 'UTC';
+  const now = Date.parse('2026-08-20T12:07:25.000Z');
+  const result = api.computeTarget(now, { ...api.DEFAULT_SETTINGS, timezone: 'Asia/Jakarta', delayMinutes: 60 });
+  api.browserTimeZone = originalBrowserTimeZone;
+  assert.equal(result.timestamp, Date.parse('2026-08-20T13:08:00.000Z'));
+  assert.equal(result.configuredTimeZone, 'Asia/Jakarta');
+  assert.equal(result.timeZone, 'UTC');
+  assert.equal(JSON.stringify(result.fields), JSON.stringify({ year: 2026, month: 8, day: 20, hour: 13, minute: 8, second: 0 }));
+  assert.equal(api.formatTimestamp(result.timestamp, result.configuredTimeZone), 'Aug 20, 2026 at 8:08 PM');
+  assert.equal(api.formatTimestamp(result.timestamp, result.timeZone), 'Aug 20, 2026 at 1:08 PM');
 });
 
 test('Intl-backed conversion advances a nonexistent DST wall time', () => {
@@ -178,4 +217,19 @@ test('extension sources contain no private endpoint, credential, or network code
   assert.doesNotMatch(source, /viewer\.json|authorization\s*:/i);
   assert.doesNotMatch(source, /csrf[-_]?token|bearer\s+[a-z0-9]/i);
   assert.doesNotMatch(source, /\b(fetch|XMLHttpRequest|WebSocket)\s*\(/);
+});
+
+test('settings dropdowns use the reusable accessible select popover component', () => {
+  const source = fs.readFileSync(path.join(rootDir, 'src/select-popover.js'), 'utf8');
+  const html = fs.readFileSync(path.join(rootDir, 'src/options.html'), 'utf8');
+  assert.match(source, /function enhanceSelect\(select\)/);
+  assert.match(source, /aria-haspopup/);
+  assert.match(source, /role', 'listbox/);
+  assert.match(source, /role', 'option/);
+  assert.match(source, /event\.key === 'Escape'/);
+  assert.match(source, /function enhanceCombobox\(input, items\)/);
+  assert.match(source, /aria-autocomplete/);
+  assert.match(source, /if \(!filtering\) return values/);
+  assert.match(html, /src="select-popover\.js"/);
+  assert.doesNotMatch(html, /<datalist/);
 });

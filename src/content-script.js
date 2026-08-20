@@ -3,12 +3,18 @@
 
   const api = root.XMax || {};
   let running = false;
-  let statusTimer = null;
   let seedObserver = null;
   let seedDebounceTimer = null;
   let seedWindowTimer = null;
   let seedRun = null;
-  const STATUS_ID = 'xmax-status';
+  const TOAST_VIEWPORT_ID = 'xmax-toast-viewport';
+  const TOAST_STYLE_ID = 'xmax-toast-style';
+  const MAX_VISIBLE_TOASTS = 3;
+  const TOAST_LAYER = 2147483647; // Required to stay above X's third-party stacking contexts.
+  const BACKGROUND_DIALOG_ATTRIBUTE = 'data-xmax-background-schedule';
+  const BACKGROUND_MODE_ATTRIBUTE = 'data-xmax-background-mode';
+  const EXISTING_MODAL_ATTRIBUTE = 'data-xmax-existing-modal';
+  const BACKGROUND_STYLE_ID = 'xmax-background-schedule-style';
   const SEED_DEBOUNCE_MS = 180;
   const SEED_WINDOW_MS = 4500;
 
@@ -33,28 +39,246 @@
     return ERROR_MESSAGES[code] || fallback || 'X-max could not set the schedule time.';
   }
 
+  function installToastStyle() {
+    if (!root.document || !root.document.documentElement) return;
+    if (root.document.getElementById(TOAST_STYLE_ID)) return;
+    const style = root.document.createElement('style');
+    style.id = TOAST_STYLE_ID;
+    style.dataset.xmaxOwned = 'true';
+    style.textContent = `
+      #${TOAST_VIEWPORT_ID} {
+        position: fixed;
+        z-index: ${TOAST_LAYER};
+        bottom: max(18px, env(safe-area-inset-bottom));
+        left: 50%;
+        width: min(calc(100vw - 24px), 300px);
+        height: 58px;
+        transform: translateX(-50%);
+        pointer-events: none;
+        isolation: isolate;
+      }
+      #${TOAST_VIEWPORT_ID} .xmax-toast {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        width: 100%;
+        min-height: 48px;
+        padding: 8px 12px 9px;
+        border: 0;
+        border-radius: 14px;
+        background: linear-gradient(145deg, #191b1e 0%, #111315 32%, #090a0b 72%, #0e1012 100%);
+        box-shadow: 0 0 0 1px rgb(255 255 255 / 12%), 0 2px 5px rgb(0 0 0 / 28%), 0 14px 30px -10px rgb(0 0 0 / 68%), inset 0 1px 0 rgb(255 255 255 / 7%);
+        color: #f5f7f9;
+        font: 400 11px/1.3 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: -.005em;
+        opacity: 0;
+        transform: translateY(16px) scale(.98);
+        transform-origin: bottom center;
+        transition: opacity 180ms cubic-bezier(.32, .72, 0, 1), transform 180ms cubic-bezier(.32, .72, 0, 1);
+        -webkit-font-smoothing: antialiased;
+      }
+      #${TOAST_VIEWPORT_ID} .xmax-toast[data-instant="true"] {
+        transition-duration: 160ms;
+      }
+      #${TOAST_VIEWPORT_ID} .xmax-toast[data-state="open"] {
+        opacity: 1;
+        transform: translateY(var(--toast-y, 0)) scale(var(--toast-scale, 1));
+      }
+      #${TOAST_VIEWPORT_ID} .xmax-toast[data-state="closed"] {
+        opacity: 0;
+        transform: translateY(10px) scale(.98);
+        transition-duration: 140ms;
+        transition-timing-function: ease-in;
+      }
+      #${TOAST_VIEWPORT_ID} .xmax-toast-title {
+        display: block;
+        margin: 0;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      #${TOAST_VIEWPORT_ID} .xmax-toast-message {
+        display: block;
+        min-width: 0;
+        color: #d5d8dc;
+        font-size: 11px;
+        line-height: 1.35;
+        font-variant-numeric: tabular-nums;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #${TOAST_VIEWPORT_ID} .xmax-toast {
+          transition: none;
+        }
+      }
+    `;
+    (root.document.head || root.document.documentElement).appendChild(style);
+  }
+
+  function reindexToasts(viewport) {
+    if (!viewport || typeof viewport.querySelectorAll !== 'function') return;
+    const toasts = Array.from(viewport.querySelectorAll('.xmax-toast:not([data-state="closed"])'));
+    toasts.forEach((toast, index) => {
+      const depth = toasts.length - index - 1;
+      toast.style.setProperty('--toast-y', `${depth * -8}px`);
+      toast.style.setProperty('--toast-scale', String(Math.max(0.92, 1 - depth * 0.04)));
+      toast.style.zIndex = String(MAX_VISIBLE_TOASTS - depth);
+      toast.dataset.depth = String(depth);
+    });
+  }
+
+  function pruneToastStack(viewport, currentToast) {
+    if (!viewport || typeof viewport.querySelectorAll !== 'function') return [];
+    const active = Array.from(viewport.querySelectorAll('.xmax-toast:not([data-state="closed"])'));
+    while (active.length > MAX_VISIBLE_TOASTS) {
+      const oldest = active.shift();
+      if (oldest && oldest !== currentToast) oldest.remove();
+    }
+    return active;
+  }
+
+  function dismissToast(toast) {
+    if (!toast || !toast.isConnected) return;
+    toast.dataset.state = 'closed';
+    const viewport = toast.parentElement;
+    const remove = () => {
+      if (toast.isConnected) toast.remove();
+      if (viewport) reindexToasts(viewport);
+      if (viewport && !viewport.firstElementChild) viewport.remove();
+    };
+    toast.addEventListener('transitionend', remove, { once: true });
+    setTimeout(remove, 220);
+  }
+
   function showStatus(message, kind, timeout) {
     if (!root.document || !root.document.body) return;
-    const previous = root.document.getElementById(STATUS_ID);
-    if (previous) previous.remove();
-    if (statusTimer) clearTimeout(statusTimer);
+    installToastStyle();
+    let viewport = root.document.getElementById(TOAST_VIEWPORT_ID);
+    if (!viewport) {
+      viewport = root.document.createElement('div');
+      viewport.id = TOAST_VIEWPORT_ID;
+      viewport.dataset.xmaxOwned = 'true';
+      viewport.setAttribute('aria-label', 'X-max notifications');
+      root.document.body.appendChild(viewport);
+    }
     const status = root.document.createElement('div');
-    status.id = STATUS_ID;
+    status.className = 'xmax-toast';
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
+    status.setAttribute('aria-atomic', 'true');
     status.dataset.xmaxOwned = 'true';
-    status.textContent = String(message).slice(0, 240);
-    status.style.cssText = [
-      'position:fixed', 'z-index:2147483647', 'right:16px', 'bottom:16px',
-      'max-width:360px', 'padding:12px 16px', 'border-radius:12px',
-      'font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-      'box-shadow:0 4px 18px rgba(0,0,0,.25)', 'color:#fff',
-      kind === 'success' ? 'background:#0b6b42' : kind === 'warning' ? 'background:#7a4b00' : 'background:#8b1e2d'
-    ].join(';');
-    root.document.body.appendChild(status);
-    statusTimer = setTimeout(() => {
-      if (status.isConnected) status.remove();
-    }, timeout || 4500);
+    status.dataset.kind = kind === 'success' || kind === 'warning' ? kind : 'error';
+    status.dataset.state = 'entering';
+    const hadVisibleToast = typeof viewport.querySelectorAll === 'function' &&
+      viewport.querySelectorAll('.xmax-toast:not([data-state="closed"])').length > 0;
+    if (hadVisibleToast) status.dataset.instant = 'true';
+    const title = root.document.createElement('strong');
+    title.className = 'xmax-toast-title';
+    title.textContent = status.dataset.kind === 'success'
+      ? 'Schedule applied'
+      : status.dataset.kind === 'warning'
+        ? 'Schedule needs review'
+        : 'Couldn’t schedule';
+    const copy = root.document.createElement('span');
+    copy.className = 'xmax-toast-message';
+    copy.textContent = String(message).slice(0, 240);
+    status.append(title, copy);
+    viewport.appendChild(status);
+    pruneToastStack(viewport, status);
+    reindexToasts(viewport);
+    const open = () => {
+      status.dataset.state = 'open';
+      reindexToasts(viewport);
+    };
+    // Two frames guarantee the entering transform is painted before opening.
+    // A single frame can be coalesced by Chrome and make repeated toasts pop in.
+    if (typeof root.requestAnimationFrame === 'function') {
+      root.requestAnimationFrame(() => root.requestAnimationFrame(open));
+    }
+    else setTimeout(open, 0);
+    setTimeout(() => dismissToast(status), timeout || 4500);
+  }
+
+  function createSerialQueue(task) {
+    let tail = Promise.resolve();
+    return function enqueue() {
+      const args = arguments;
+      const run = tail.then(() => task.apply(null, args));
+      tail = run.catch(() => {});
+      return run;
+    };
+  }
+
+  function cloakScheduleDialog(dialog) {
+    if (!dialog || !dialog.style || typeof dialog.setAttribute !== 'function') return () => {};
+    const properties = ['opacity', 'pointer-events', 'transition', 'animation'];
+    const previous = properties.map((property) => ({
+      property,
+      value: dialog.style.getPropertyValue(property),
+      priority: dialog.style.getPropertyPriority(property)
+    }));
+    const hadAttribute = dialog.hasAttribute(BACKGROUND_DIALOG_ATTRIBUTE);
+
+    dialog.setAttribute(BACKGROUND_DIALOG_ATTRIBUTE, 'true');
+    dialog.style.setProperty('opacity', '0.001', 'important');
+    dialog.style.setProperty('pointer-events', 'none', 'important');
+    dialog.style.setProperty('transition', 'none', 'important');
+    dialog.style.setProperty('animation', 'none', 'important');
+
+    let restored = false;
+    return () => {
+      if (restored) return;
+      restored = true;
+      for (const item of previous) {
+        if (item.value) dialog.style.setProperty(item.property, item.value, item.priority);
+        else dialog.style.removeProperty(item.property);
+      }
+      if (!hadAttribute) dialog.removeAttribute(BACKGROUND_DIALOG_ATTRIBUTE);
+    };
+  }
+
+  function installBackgroundScheduleStyle() {
+    if (!root.document || !root.document.documentElement) return;
+    if (root.document.getElementById(BACKGROUND_STYLE_ID)) return;
+    const style = root.document.createElement('style');
+    style.id = BACKGROUND_STYLE_ID;
+    style.dataset.xmaxOwned = 'true';
+    style.textContent = `
+      html[${BACKGROUND_MODE_ATTRIBUTE}="true"] [role="dialog"][aria-modal="true"]:not([${EXISTING_MODAL_ATTRIBUTE}="true"]) {
+        opacity: 0.001 !important;
+        pointer-events: none !important;
+        transition: none !important;
+        animation: none !important;
+      }
+    `;
+    (root.document.head || root.document.documentElement).appendChild(style);
+  }
+
+  function enableBackgroundScheduleMode() {
+    installBackgroundScheduleStyle();
+    const documentElement = root.document && root.document.documentElement;
+    if (!documentElement) return () => {};
+    const existingModals = root.document && typeof root.document.querySelectorAll === 'function'
+      ? Array.from(root.document.querySelectorAll('[role="dialog"][aria-modal="true"]'))
+      : [];
+    const markedModals = existingModals.filter((dialog) => !dialog.hasAttribute(EXISTING_MODAL_ATTRIBUTE));
+    markedModals.forEach((dialog) => dialog.setAttribute(EXISTING_MODAL_ATTRIBUTE, 'true'));
+    documentElement.setAttribute(BACKGROUND_MODE_ATTRIBUTE, 'true');
+    let restored = false;
+    return () => {
+      if (restored) return;
+      restored = true;
+      documentElement.removeAttribute(BACKGROUND_MODE_ATTRIBUTE);
+      markedModals.forEach((dialog) => dialog.removeAttribute(EXISTING_MODAL_ATTRIBUTE));
+    };
   }
 
   function dispatchChange(element) {
@@ -137,30 +361,46 @@
     return Object.keys(expected).every((key) => optionExists(fields.fields[key], expected[key]));
   }
 
-  async function setAndWait(dialog, fieldName, value, timeout) {
-    let fields = api.findScheduleFields(dialog);
-    if (!fields || fields.kind !== 'selects' || !fields.fields[fieldName]) return false;
-    if (!optionExists(fields.fields[fieldName], value)) return false;
+  async function setScheduleField(dialog, fieldName, value) {
+    const fields = await api.waitFor(() => {
+      const current = api.findScheduleFields(dialog);
+      return current && current.kind === 'selects' && current.fields[fieldName] ? current : null;
+    }, { timeout: 900, interval: 35, root: dialog });
+    if (!fields || !optionExists(fields.fields[fieldName], value)) return false;
+    // Avoid dispatching synthetic change events for values X already holds.
+    // React can replace sibling controls after every real change, so no-op
+    // events only create extra rerenders and false verification timeouts.
+    if (String(fields.fields[fieldName].value).toLowerCase() === String(value).toLowerCase()) return true;
     if (!setNativeValue(fields.fields[fieldName], value)) return false;
     await api.nextFrame();
-    const updated = await api.waitFor(() => {
-      const current = api.findScheduleFields(dialog);
-      return current && current.kind === 'selects' && String(current.fields[fieldName].value) === String(value) ? current : null;
-    }, { timeout: timeout || 850, interval: 40 });
-    return Boolean(updated);
+    return true;
   }
 
   async function applySelectValues(dialog, target) {
     const expected = expectedSelectValues(target);
     const order = ['year', 'month', 'day', 'period', 'hour', 'minute'];
-    for (let pass = 0; pass < 2; pass += 1) {
+    for (let pass = 0; pass < 3; pass += 1) {
+      let passCompleted = true;
       for (const fieldName of order) {
-        if (!(await setAndWait(dialog, fieldName, expected[fieldName]))) return false;
+        if (!(await setScheduleField(dialog, fieldName, expected[fieldName]))) {
+          passCompleted = false;
+          break;
+        }
       }
-      const fields = api.findScheduleFields(dialog);
-      if (selectValuesMatch(fields, target)) return true;
+      const settled = passCompleted && await api.waitFor(() => {
+        const current = api.findScheduleFields(dialog);
+        return selectValuesMatch(current, target) ? current : null;
+      }, { timeout: 900, interval: 40, root: dialog });
+      if (settled) return true;
     }
-    return false;
+    // X occasionally commits the last controlled-select update after our
+    // normal pass timeout. Judge the final complete form before reporting
+    // VALUE_NOT_ACCEPTED; intermediate control lifetimes are not authoritative.
+    const finallySettled = await api.waitFor(() => {
+      const current = api.findScheduleFields(dialog);
+      return selectValuesMatch(current, target) ? current : null;
+    }, { timeout: 3000, interval: 50, root: dialog });
+    return Boolean(finallySettled);
   }
 
   async function applyInputValues(dialog, fields, target) {
@@ -194,8 +434,12 @@
       text.includes(`${target.hour12}:${minute}`) && text.toLowerCase().includes(target.period);
   }
 
-  async function waitForDialog() {
-    return api.waitFor(() => api.findScheduleDialog(root.document), { timeout: 3200, interval: 45, root: root.document && root.document.body });
+  async function waitForDialog(onFound) {
+    return api.waitFor(() => {
+      const dialog = api.findScheduleDialog(root.document);
+      if (dialog && typeof onFound === 'function') onFound(dialog);
+      return dialog;
+    }, { timeout: 3200, interval: 45, root: root.document && root.document.body });
   }
 
   async function verifyAndApply(dialog, target) {
@@ -241,6 +485,9 @@
       const settings = await api.loadSettings();
       if (!settings.enabled || typeof api.findLatestVisibleScheduleTimestamp !== 'function') {
         return { ok: false, persisted: false, code: 'SEED_DISABLED' };
+      }
+      if (typeof api.isSequenceReset === 'function' && await api.isSequenceReset()) {
+        return { ok: true, persisted: false, code: 'SEQUENCE_RESET_ACTIVE' };
       }
       const visibleTimestamp = api.findLatestVisibleScheduleTimestamp(root.document, settings.timezone);
       if (!Number.isFinite(visibleTimestamp)) return { ok: true, persisted: false, code: 'NO_VISIBLE_SCHEDULE' };
@@ -339,23 +586,33 @@
   async function runScheduling(rawSettings) {
     if (running) return { ok: false, code: 'BUSY', message: messageFor('BUSY') };
     running = true;
+    let restoreDialog = () => {};
+    let restoreBackgroundMode = () => {};
+    let dialogCloaked = false;
+    let backgroundOpenedDialog = null;
+    let confirmationStarted = false;
+    const cloakOnce = (dialog) => {
+      if (dialogCloaked) return;
+      dialogCloaked = true;
+      restoreDialog = cloakScheduleDialog(dialog);
+    };
     try {
       const validation = api.validateSettings(rawSettings);
       if (!validation.ok) return { ok: false, code: 'INVALID_SETTINGS', message: messageFor('INVALID_SETTINGS') };
       if (!validation.settings.enabled) return { ok: false, code: 'DISABLED', message: 'X-max scheduling is disabled in settings.' };
       let latestScheduledTimestamp = null;
       if (validation.settings.mode === 'next-slot') {
-        const stored = typeof api.loadLastScheduledAt === 'function' ? await api.loadLastScheduledAt() : null;
-        const visible = typeof api.findLatestVisibleScheduleTimestamp === 'function'
-          ? api.findLatestVisibleScheduleTimestamp(root.document, validation.settings.timezone)
+        // Sequential interval is an X-max-owned queue. Visible scheduled posts
+        // may belong to another workflow and must not jump this cursor forward.
+        latestScheduledTimestamp = typeof api.loadLastScheduledAt === 'function'
+          ? await api.loadLastScheduledAt()
           : null;
-        const known = [stored, visible].filter((timestamp) => Number.isFinite(timestamp));
-        latestScheduledTimestamp = known.length ? Math.max(...known) : null;
       }
       const target = api.computeTarget(new Date(), validation.settings, latestScheduledTimestamp);
       if (!target.ok) return { ok: false, code: target.code, message: messageFor(target.code) };
 
       let dialog = api.findScheduleDialog(root.document);
+      if (dialog) cloakOnce(dialog);
       if (!dialog) {
         const composerResult = api.findComposer(root.document);
         if (composerResult.status === 'multiple') {
@@ -371,12 +628,14 @@
           showStatus(messageFor('OPENER_NOT_FOUND'), 'error');
           return { ok: false, code: 'OPENER_NOT_FOUND', message: messageFor('OPENER_NOT_FOUND') };
         }
+        restoreBackgroundMode = enableBackgroundScheduleMode();
         opener.click();
-        dialog = await waitForDialog();
+        dialog = await waitForDialog(cloakOnce);
         if (!dialog) {
           showStatus(messageFor('DIALOG_TIMEOUT'), 'error');
           return { ok: false, code: 'DIALOG_TIMEOUT', message: messageFor('DIALOG_TIMEOUT') };
         }
+        backgroundOpenedDialog = dialog;
       }
 
       const applied = await verifyAndApply(dialog, target);
@@ -390,13 +649,20 @@
         showStatus(messageFor('CONFIRMATION_NOT_FOUND'), 'error');
         return { ok: false, code: 'CONFIRMATION_NOT_FOUND', message: messageFor('CONFIRMATION_NOT_FOUND') };
       }
+      confirmationStarted = true;
       confirmation.click();
       const after = await verifyAfterConfirmation(target);
       const cursorResult = await recordScheduleCursor(target, after);
       const formatted = api.formatTarget(target);
+      const ruleFormatted = typeof api.formatTimestamp === 'function'
+        ? api.formatTimestamp(target.timestamp, target.configuredTimeZone)
+        : formatted;
       if (after.ok) {
         const cursorNote = cursorResult.persisted ? '' : ' Queue memory could not be saved.';
-        const message = `Scheduled for ${formatted} (${target.timeZone}).${cursorNote}`;
+        const scheduleCopy = target.configuredTimeZone !== target.timeZone
+          ? `Rule: ${ruleFormatted} (${target.configuredTimeZone}) · X: ${formatted} (${target.timeZone}).`
+          : `Scheduled for ${formatted} (${target.timeZone}).`;
+        const message = `${scheduleCopy}${cursorNote}`;
         showStatus(message, cursorNote ? 'warning' : 'success');
         return { ok: true, code: 'SCHEDULE_APPLIED', message: message, cursorPersisted: Boolean(cursorResult.persisted), target: { timestamp: target.timestamp, timeZone: target.timeZone } };
       }
@@ -404,16 +670,31 @@
       showStatus(warning, 'warning');
       return { ok: false, code: after.code, warning: true, cursorPersisted: Boolean(cursorResult.persisted), message: warning, target: { timestamp: target.timestamp, timeZone: target.timeZone } };
     } finally {
+      if (backgroundOpenedDialog && !confirmationStarted && backgroundOpenedDialog.isConnected) {
+        const close = backgroundOpenedDialog.querySelector('[data-testid="app-bar-close"], button[aria-label="Close"]');
+        if (close && typeof close.click === 'function') {
+          close.click();
+          await api.waitFor(() => backgroundOpenedDialog.isConnected ? null : true, {
+            timeout: 600,
+            interval: 30,
+            root: root.document && root.document.body
+          });
+        }
+      }
+      restoreDialog();
+      restoreBackgroundMode();
       running = false;
     }
   }
+
+  const enqueueScheduling = createSerialQueue(runScheduling);
 
   function installRuntimeListener() {
     const runtime = root.chrome && root.chrome.runtime;
     if (!runtime || !runtime.onMessage || typeof runtime.onMessage.addListener !== 'function') return;
     runtime.onMessage.addListener((message, _sender, sendResponse) => {
       if (!message || message.type !== 'xmax.setScheduleTime' || message.version !== 1) return undefined;
-      runScheduling(message.settings || api.DEFAULT_SETTINGS)
+      enqueueScheduling(message.settings || api.DEFAULT_SETTINGS)
         .then((response) => sendResponse(response))
         .catch((_error) => sendResponse({ ok: false, code: 'UNEXPECTED', message: 'X-max could not set the schedule time.' }));
       return true;
@@ -421,15 +702,23 @@
   }
 
   api.runScheduling = runScheduling;
+  api.enqueueScheduling = enqueueScheduling;
+  api.createSerialQueue = createSerialQueue;
   api.recordScheduleCursor = recordScheduleCursor;
   api.seedVisibleScheduleCursor = seedVisibleScheduleCursor;
+  api.cloakScheduleDialog = cloakScheduleDialog;
+  api.enableBackgroundScheduleMode = enableBackgroundScheduleMode;
   api.startVisibleScheduleSeedWindow = startVisibleScheduleSeedWindow;
   api.stopVisibleScheduleSeedWindow = stopVisibleScheduleSeedWindow;
   api.showStatus = showStatus;
+  api.reindexToasts = reindexToasts;
+  api.pruneToastStack = pruneToastStack;
+  api.dismissToast = dismissToast;
   api.setNativeValue = setNativeValue;
   api.selectValuesMatch = selectValuesMatch;
   api.inputValuesMatch = inputValuesMatch;
   root.XMax = api;
+  installToastStyle();
+  installBackgroundScheduleStyle();
   installRuntimeListener();
-  installVisibleScheduleCursorSeeding();
 })(typeof globalThis !== 'undefined' ? globalThis : window);

@@ -28,41 +28,58 @@
 
         <fieldset>
           <legend>Scheduling rule</legend>
-          <label for="mode">Rule</label>
-          <select id="mode">
-            <option value="fixed-delay">Fixed delay</option>
-            <option value="next-slot">Next slot</option>
-          </select>
+          <div class="field">
+            <label id="mode-label" for="mode">Rule</label>
+            <select id="mode">
+              <option value="fixed-delay">Fixed delay</option>
+              <option value="next-slot">Sequential interval</option>
+            </select>
+          </div>
 
           <div id="fixed-fields" class="sub-fields">
-            <label for="delay-minutes">Delay (minutes)</label>
-            <input id="delay-minutes" type="number" min="1" max="43200" step="1" inputmode="numeric">
-            <small>For example, 60 schedules one hour from now.</small>
+            <div class="field">
+              <label for="delay-minutes">Delay (minutes)</label>
+              <input id="delay-minutes" type="number" min="1" max="43200" step="1" inputmode="numeric">
+              <small>For example, 60 schedules one hour from now.</small>
+            </div>
           </div>
 
           <div id="slot-fields" class="sub-fields" hidden>
-            <label for="slot-interval">Slot interval</label>
-            <select id="slot-interval">
-              <option value="5">Every 5 minutes</option>
-              <option value="10">Every 10 minutes</option>
-              <option value="15">Every 15 minutes</option>
-              <option value="30">Every 30 minutes</option>
-              <option value="60">Every 60 minutes</option>
-            </select>
-            <label for="minimum-lead">Minimum lead time (minutes)</label>
-            <input id="minimum-lead" type="number" min="1" max="120" step="1" inputmode="numeric">
+            <div class="field">
+              <label id="slot-interval-label" for="slot-interval">Slot interval</label>
+              <select id="slot-interval">
+                <option value="5">Every 5 minutes</option>
+                <option value="10">Every 10 minutes</option>
+                <option value="15">Every 15 minutes</option>
+                <option value="30">Every 30 minutes</option>
+                <option value="60">Every 60 minutes</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="minimum-lead">Minimum lead time (minutes)</label>
+              <input id="minimum-lead" type="number" min="1" max="120" step="1" inputmode="numeric">
+              <small>Used when the sequence starts from the current time.</small>
+            </div>
+            <section class="sequence-state" aria-labelledby="sequence-state-title">
+              <div class="sequence-copy">
+                <strong id="sequence-state-title">Sequence state</strong>
+                <span id="sequence-state-copy">Loading X-max sequence…</span>
+              </div>
+              <button id="reset-sequence" class="secondary-button" type="button">Reset to current time</button>
+            </section>
           </div>
         </fieldset>
 
         <fieldset>
           <legend>Time zone</legend>
-          <label for="timezone">IANA time zone</label>
-          <input id="timezone" list="timezone-list" autocomplete="off" spellcheck="false">
-          <datalist id="timezone-list"></datalist>
-          <small>“local” follows the browser time zone. Make sure it matches the zone displayed by X.</small>
+          <div class="field">
+            <label for="timezone">IANA time zone</label>
+            <input id="timezone" autocomplete="off" spellcheck="false">
+            <small>Sets the rule’s time zone. X-max converts the result to the browser time zone displayed by X.</small>
+          </div>
         </fieldset>
 
-        <output id="preview" class="preview" aria-live="polite">Calculating next target…</output>
+        <section id="preview" class="preview" aria-live="polite">Calculating next target…</section>
         <p id="status" class="status" role="status" aria-live="polite"></p>
         <button class="save-button" type="submit">Save settings</button>
       </form>
@@ -84,6 +101,7 @@
     </main>
     <script src="settings.js"></script>
     <script src="scheduling.js"></script>
+    <script src="select-popover.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

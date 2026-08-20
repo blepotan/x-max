@@ -4,6 +4,7 @@
   const api = root.XMax || {};
   const STORAGE_KEY = 'xmaxSettings';
   const LAST_SCHEDULE_KEY = 'xmaxLastScheduledAt';
+  const SEQUENCE_RESET_KEY = 'xmaxSequenceReset';
   const LAST_SCHEDULE_SCHEMA_VERSION = 1;
   const SCHEMA_VERSION = 1;
   const SLOT_INTERVALS = Object.freeze([5, 10, 15, 30, 60]);
@@ -77,7 +78,7 @@
     };
 
     if (settings.mode !== 'fixed-delay' && settings.mode !== 'next-slot') {
-      return { ok: false, code: 'INVALID_MODE', message: 'Choose a fixed delay or next-slot rule.' };
+      return { ok: false, code: 'INVALID_MODE', message: 'Choose a fixed delay or sequential-interval rule.' };
     }
     if (!isInteger(settings.delayMinutes) || settings.delayMinutes < 1 || settings.delayMinutes > 43200) {
       return { ok: false, code: 'INVALID_DELAY', message: 'Fixed delay must be an integer from 1 to 43,200 minutes.' };
@@ -176,6 +177,7 @@
   async function loadLastScheduledAt(storage) {
     const storageApi = storage || (root.chrome && root.chrome.storage);
     if (!storageApi) return null;
+    if (await isSequenceReset(storageApi)) return null;
     // The cursor is device-local state. Read both areas so a prior fallback
     // write cannot be masked by an older value in the other area.
     const values = await Promise.all([
@@ -198,6 +200,7 @@
     try {
       if (storageApi.local && typeof storageApi.local.set === 'function') {
         await storageApi.local.set(payload);
+        if (typeof storageApi.local.remove === 'function') await storageApi.local.remove(SEQUENCE_RESET_KEY);
         return { ok: true, persisted: true, area: 'local', timestamp: payload[LAST_SCHEDULE_KEY] };
       }
     } catch (_localError) {
@@ -206,6 +209,7 @@
     try {
       if (storageApi.sync && typeof storageApi.sync.set === 'function') {
         await storageApi.sync.set(payload);
+        if (storageApi.local && typeof storageApi.local.remove === 'function') await storageApi.local.remove(SEQUENCE_RESET_KEY);
         return { ok: true, persisted: true, area: 'sync', timestamp: payload[LAST_SCHEDULE_KEY] };
       }
     } catch (_syncError) {
@@ -214,8 +218,36 @@
     return { ok: false, persisted: false, code: 'STORAGE_FAILED' };
   }
 
+  async function isSequenceReset(storage) {
+    const storageApi = storage || (root.chrome && root.chrome.storage);
+    try {
+      if (!storageApi || !storageApi.local || typeof storageApi.local.get !== 'function') return false;
+      const result = await storageApi.local.get([SEQUENCE_RESET_KEY]);
+      return Boolean(result && result[SEQUENCE_RESET_KEY] === true);
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  async function resetSequenceCursor(storage) {
+    const storageApi = storage || (root.chrome && root.chrome.storage);
+    if (!storageApi) return { ok: false, code: 'STORAGE_UNAVAILABLE' };
+    try {
+      if (!storageApi.local || typeof storageApi.local.set !== 'function') throw new Error('local storage unavailable');
+      await storageApi.local.set({ [SEQUENCE_RESET_KEY]: true });
+      const removals = [];
+      if (typeof storageApi.local.remove === 'function') removals.push(storageApi.local.remove(LAST_SCHEDULE_KEY));
+      if (storageApi.sync && typeof storageApi.sync.remove === 'function') removals.push(storageApi.sync.remove(LAST_SCHEDULE_KEY));
+      await Promise.all(removals);
+      return { ok: true, reset: true };
+    } catch (_error) {
+      return { ok: false, code: 'STORAGE_FAILED', message: 'The sequence could not be reset.' };
+    }
+  }
+
   api.STORAGE_KEY = STORAGE_KEY;
   api.LAST_SCHEDULE_KEY = LAST_SCHEDULE_KEY;
+  api.SEQUENCE_RESET_KEY = SEQUENCE_RESET_KEY;
   api.LAST_SCHEDULE_SCHEMA_VERSION = LAST_SCHEDULE_SCHEMA_VERSION;
   api.SCHEMA_VERSION = SCHEMA_VERSION;
   api.SLOT_INTERVALS = SLOT_INTERVALS;
@@ -229,5 +261,7 @@
   api.saveSettings = saveSettings;
   api.loadLastScheduledAt = loadLastScheduledAt;
   api.saveLastScheduledAt = saveLastScheduledAt;
+  api.isSequenceReset = isSequenceReset;
+  api.resetSequenceCursor = resetSequenceCursor;
   root.XMax = api;
 })(typeof globalThis !== 'undefined' ? globalThis : window);
