@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "X-max Schedule Time",
+  "version": "0.1.0",
+  "description": "Apply a configured schedule time to X's native post composer with a Chrome shortcut.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://x.com/*",
+    "https://twitter.com/*"
+  ],
+  "background": {
+    "service_worker": "src/service-worker.js"
+  },
+  "action": {
+    "default_title": "X-max schedule settings",
+    "default_popup": "src/options.html"
+  },
+  "options_ui": {
+    "page": "src/options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "set-schedule-time": {
+      "suggested_key": {
+        "default": "Alt+Shift+X",
+        "mac": "Alt+Shift+X"
+      },
+      "description": "Set the next X post schedule time"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
+        "src/settings.js",
+        "src/scheduling.js",
+        "src/selectors.js",
+        "src/content-script.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  }
+}

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>X-max schedule settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="card">
+      <header class="app-header">
+        <img class="app-logo" src="assets/x-max-ico.svg" width="48" height="48" alt="">
+        <div>
+          <p class="eyebrow">X-max</p>
+          <h1>Schedule faster</h1>
+          <p class="intro">Set the next time with one shortcut. Your post is never published automatically.</p>
+        </div>
+      </header>
+
+      <form id="settings-form" novalidate>
+        <label class="toggle-row" for="enabled">
+          <span class="toggle-copy">
+            <strong>Enable scheduling</strong>
+            <small>Run X-max when you press the shortcut.</small>
+          </span>
+          <input id="enabled" type="checkbox">
+        </label>
+
+        <fieldset>
+          <legend>Scheduling rule</legend>
+          <label for="mode">Rule</label>
+          <select id="mode">
+            <option value="fixed-delay">Fixed delay</option>
+            <option value="next-slot">Next slot</option>
+          </select>
+
+          <div id="fixed-fields" class="sub-fields">
+            <label for="delay-minutes">Delay (minutes)</label>
+            <input id="delay-minutes" type="number" min="1" max="43200" step="1" inputmode="numeric">
+            <small>For example, 60 schedules one hour from now.</small>
+          </div>
+
+          <div id="slot-fields" class="sub-fields" hidden>
+            <label for="slot-interval">Slot interval</label>
+            <select id="slot-interval">
+              <option value="5">Every 5 minutes</option>
+              <option value="10">Every 10 minutes</option>
+              <option value="15">Every 15 minutes</option>
+              <option value="30">Every 30 minutes</option>
+              <option value="60">Every 60 minutes</option>
+            </select>
+            <label for="minimum-lead">Minimum lead time (minutes)</label>
+            <input id="minimum-lead" type="number" min="1" max="120" step="1" inputmode="numeric">
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Time zone</legend>
+          <label for="timezone">IANA time zone</label>
+          <input id="timezone" list="timezone-list" autocomplete="off" spellcheck="false">
+          <datalist id="timezone-list"></datalist>
+          <small>“local” follows the browser time zone. Make sure it matches the zone displayed by X.</small>
+        </fieldset>
+
+        <output id="preview" class="preview" aria-live="polite">Calculating next target…</output>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+        <button class="save-button" type="submit">Save settings</button>
+      </form>
+
+      <section class="shortcut">
+        <h2>Keyboard shortcut</h2>
+        <p>Suggested default</p>
+        <div class="shortcut-row">
+          <div class="key-group" aria-label="Alt plus Shift plus X">
+            <kbd>Alt</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>X</kbd>
+          </div>
+          <a href="chrome://extensions/shortcuts">Change</a>
+        </div>
+      </section>
+
+      <footer>
+        <p>X-max uses only the rendered X UI. It does not read cookies, tokens, post content, or private API responses, and makes no network requests.</p>
+      </footer>
+    </main>
+    <script src="settings.js"></script>
+    <script src="scheduling.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>
