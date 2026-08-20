@@ -121,7 +121,7 @@ Build the Chrome Web Store package:
 bun run build
 ```
 
-The command creates `dist/x-max-v<version>.zip`. Upload this ZIP file to the Chrome Web Store Developer Dashboard.
+The command creates the Chrome Web Store release archive at `dist/x-max-v<version>.zip`.
 
 ## Release information
 
