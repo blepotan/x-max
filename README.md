@@ -14,6 +14,7 @@
   <a href="LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/license/blepotan/x-max.svg?mode=dark"><img alt="license" src="https://shieldcn.dev/github/license/blepotan/x-max.svg?mode=light"></picture></a>
   <a href="https://github.com/blepotan/x-max/graphs/contributors"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/contributors/blepotan/x-max.svg?mode=dark"><img alt="contributors" src="https://shieldcn.dev/github/contributors/blepotan/x-max.svg?mode=light"></picture></a>
   <a href="https://github.com/blepotan/x-max/commits/main"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/last-commit/blepotan/x-max/main.svg?variant=secondary&amp;mode=dark"><img alt="last commit" src="https://shieldcn.dev/github/last-commit/blepotan/x-max/main.svg?variant=secondary&amp;mode=light"></picture></a>
+  <a href="https://chromewebstore.google.com/detail/x-max-schedule-time/lpnbojhlldmiibaaoeijacaejadlmfbb"><img alt="Chrome Web Store" src="https://img.shields.io/chrome-web-store/v/lpnbojhlldmiibaaoeijacaejadlmfbb?logo=googlechrome&logoColor=white"></a>
 </p>
 
 ## Demo
@@ -35,6 +36,8 @@
 - Configure the action with a Chrome keyboard shortcut.
 
 ## Install the extension
+
+Install from the [Chrome Web Store](https://chromewebstore.google.com/detail/x-max-schedule-time/lpnbojhlldmiibaaoeijacaejadlmfbb), or load it manually:
 
 1. Download or clone this repository.
 2. Open `chrome://extensions` in Google Chrome.
