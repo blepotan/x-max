@@ -130,6 +130,12 @@ test('notification uses a bottom-centered stacked Sonner lifecycle and reduced-m
   assert.match(source, /prefers-reduced-motion:\s*reduce/);
 });
 
+test('notification title can be customized for non-scheduling actions', () => {
+  const source = fs.readFileSync(path.join(rootDir, 'src/content-script.js'), 'utf8');
+  assert.match(source, /function showStatus\(message, kind, timeout, titleOverride\)/);
+  assert.match(source, /title\.textContent = titleOverride \|\|/);
+});
+
 test('serial queue accepts repeated shortcuts without concurrent automation', async () => {
   const api = loadContentApi();
   let active = 0;

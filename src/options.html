@@ -84,15 +84,19 @@
         <button class="save-button" type="submit">Save settings</button>
       </form>
 
-      <section class="shortcut">
-        <h2>Keyboard shortcut</h2>
-        <p>Suggested default</p>
+      <section class="shortcut" aria-labelledby="shortcut-title">
+        <h2 id="shortcut-title">Keyboard shortcut</h2>
+        <p id="shortcut-help">Chrome only allows extension shortcuts to be assigned from its shortcut settings.</p>
         <div class="shortcut-row">
-          <div class="key-group" aria-label="Alt plus Shift plus X">
-            <kbd>Alt</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>X</kbd>
+          <div class="shortcut-current">
+            <span id="shortcut-state" class="shortcut-state">Checking shortcut…</span>
+            <div id="shortcut-keys" class="key-group" aria-label="Checking the current shortcut">
+              <span class="shortcut-empty">Checking…</span>
+            </div>
           </div>
-          <a href="chrome://extensions/shortcuts">Change</a>
+          <button id="open-shortcut-settings" class="secondary-button shortcut-button" type="button" aria-describedby="shortcut-help">Set shortcut manually</button>
         </div>
+        <p id="shortcut-feedback" class="shortcut-feedback" role="status" aria-live="polite"></p>
       </section>
 
       <footer>

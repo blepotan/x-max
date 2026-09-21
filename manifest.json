@@ -49,9 +49,22 @@
         "https://twitter.com/*"
       ],
       "js": [
+        "src/x-interceptor.js",
+        "src/webmcp.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://x.com/*",
+        "https://twitter.com/*"
+      ],
+      "js": [
         "src/settings.js",
         "src/scheduling.js",
         "src/selectors.js",
+        "src/metadata.js",
         "src/content-script.js"
       ],
       "run_at": "document_idle"

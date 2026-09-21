@@ -34,6 +34,7 @@
 - Open and operate the X schedule dialog in the background.
 - Show the rule time and the converted X time.
 - Configure the action with a Chrome keyboard shortcut.
+- Copy a post's metadata, performance, and text as Markdown from its action row.
 
 ## Install the extension
 
@@ -91,18 +92,35 @@ Use `local` to use the browser time zone for both values.
 4. Wait for the confirmation notification.
 5. Review the scheduled time in the composer.
 
+### Copy post metadata
+
+Click the Markdown button at the end of a post's action row. X-max copies its author,
+canonical URL, date, content format, performance counts, and post text as Markdown.
+The data is processed locally from the X page and responses that X already loaded.
+
+### WebMCP
+
+X-max registers a read-only WebMCP tool named `get_x_post_markdown`. An agent can
+call it on an open X post without clicking the Markdown button, or pass an optional
+`post_url` for a post currently loaded on the page.
+
+WebMCP is experimental. For local testing, enable
+`chrome://flags/#enable-webmcp-testing`, relaunch Chrome, reload X-max, and open an
+individual X post. The tool can then be inspected with Chrome's Model Context Tool
+Inspector or from a WebMCP-capable agent.
+
 ## Privacy
 
 Read the full [Privacy Policy](PRIVACY.md).
 
-X-max operates only on the rendered X interface. It does not use private X API endpoints.
+X-max operates locally in the X tab. It observes X GraphQL responses that the page
+already loaded so the metadata button can include complete post data. It does not
+make additional X requests.
 
 X-max does not read these items:
 
 - Cookies
-- Authentication tokens
-- Post text
-- Private API responses
+- Account credentials or authentication tokens
 
 X-max does not make network requests.
 

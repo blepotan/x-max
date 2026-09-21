@@ -211,7 +211,7 @@ test('loadSettings falls back to local settings when sync read fails', async () 
   assert.equal(result.slotIntervalMinutes, 15);
 });
 
-test('extension sources contain no private endpoint, credential, or network code', () => {
+test('extension sources contain no hard-coded endpoint, credential, or extension-originated network call', () => {
   const sourceFiles = fs.readdirSync(path.join(rootDir, 'src')).filter((name) => name.endsWith('.js'));
   const source = sourceFiles.map((name) => fs.readFileSync(path.join(rootDir, 'src', name), 'utf8')).join('\n');
   assert.doesNotMatch(source, /viewer\.json|authorization\s*:/i);

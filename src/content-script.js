@@ -158,7 +158,7 @@
     setTimeout(remove, 220);
   }
 
-  function showStatus(message, kind, timeout) {
+  function showStatus(message, kind, timeout, titleOverride) {
     if (!root.document || !root.document.body) return;
     installToastStyle();
     let viewport = root.document.getElementById(TOAST_VIEWPORT_ID);
@@ -182,11 +182,11 @@
     if (hadVisibleToast) status.dataset.instant = 'true';
     const title = root.document.createElement('strong');
     title.className = 'xmax-toast-title';
-    title.textContent = status.dataset.kind === 'success'
+    title.textContent = titleOverride || (status.dataset.kind === 'success'
       ? 'Schedule applied'
       : status.dataset.kind === 'warning'
         ? 'Schedule needs review'
-        : 'Couldn’t schedule';
+        : 'Couldn’t schedule');
     const copy = root.document.createElement('span');
     copy.className = 'xmax-toast-message';
     copy.textContent = String(message).slice(0, 240);

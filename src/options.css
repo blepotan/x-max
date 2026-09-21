@@ -296,11 +296,14 @@ small, footer { color: var(--muted); font-size: 12px; line-height: 1.45; }
 h2 { margin: 0; font-size: 15px; line-height: 1.25; }
 .shortcut > p { margin: 5px 0 10px; color: var(--muted); font-size: 12px; }
 .shortcut-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shortcut-current { display: grid; min-width: 0; gap: 7px; }
+.shortcut-state { color: var(--muted); font-size: 11px; font-weight: var(--font-semibold); line-height: 1.2; }
+.shortcut-state[data-state="unassigned"] { color: var(--danger); }
 .key-group { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; user-select: none; }
+.key-group[data-state="suggested"] kbd { color: var(--muted); }
 kbd { min-width: 30px; padding: 5px 7px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 6px; background: var(--surface-subtle); color: var(--text); font: 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: var(--font-semibold); text-align: center; }
-a { min-height: 40px; display: inline-flex; align-items: center; color: var(--accent); font-size: 13px; font-weight: var(--font-semibold); text-decoration: none; }
-a:hover { text-decoration: underline; text-underline-offset: 3px; }
-a:active { transform: scale(.96); }
+.shortcut-button { min-height: 44px; white-space: nowrap; touch-action: manipulation; }
+.shortcut > .shortcut-feedback { min-height: 17px; margin: 8px 0 0; color: var(--danger); line-height: 17px; }
 footer { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border); }
 footer p { margin: 0; }
 
