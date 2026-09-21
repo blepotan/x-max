@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "X-max Schedule Time",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Apply a configured schedule time to X's native post composer with a Chrome shortcut.",
   "icons": {
     "16": "src/assets/icons/icon16.png",

@@ -1,5 +1,21 @@
 # Release history
 
+## 0.1.5 — 2026-09-21
+
+Copy X posts as Markdown using the new Markdown button in each post's action row.
+
+### Added
+
+- Copy the author, canonical URL, publication date, content format, and post text as a structured Markdown document.
+- Include engagement counts for views, likes, replies, reposts, and bookmarks.
+- Add the experimental, read-only WebMCP tool `get_x_post_markdown` for posts loaded on the page.
+- Show the currently assigned keyboard shortcut in settings and provide a button to open Chrome's shortcut settings.
+
+### Privacy
+
+- Metadata is processed locally from the rendered page and X responses the page already loaded, without additional network requests.
+- Copied post data is not persisted by the extension.
+
 ## 0.1.4 — 2026-08-20
 
 This is the first local release of X-max Schedule Time.
@@ -21,4 +37,3 @@ This is the first local release of X-max Schedule Time.
 - The extension uses the rendered X interface only.
 - The extension does not use private X API endpoints.
 - The extension does not make network requests.
-
